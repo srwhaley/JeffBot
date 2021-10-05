@@ -181,7 +181,7 @@ class MusicPlayer:
             try:
                 # Wait for the next song. If we timeout cancel the player and disconnect...
                 async with timeout(300):  # 5 minutes...
-                    source = await self.queue.get()
+                    source, ctx = await self.queue.get()
             except asyncio.TimeoutError:
                 return self.destroy(self._guild)
 
@@ -212,13 +212,25 @@ class MusicPlayer:
 
             embed = discord.Embed(title="Now Playing", description=f"[{source.title}]({source.web_url}) [{duration}] - {source.requester.mention}", color=discord.Color.green())
             embed.set_image(url=source.thumbnails[-1]['url'])
-            self.np = await self._channel.send(content='_ _', embed=embed, view=PlayerButtonView(self._guild.voice_client))
+            if ctx is not None:
+                await ctx.respond(content='_ _', embed=embed, view=PlayerButtonView(self._guild.voice_client))
+                self.np = 'context'
+
+            else:
+                self.np = await self._channel.send(content='_ _', embed=embed, view=PlayerButtonView(self._guild.voice_client))
+            
+            # Wait for the song to finish
             await self.next.wait()
 
             # Make sure the FFmpeg process is cleaned up, and delete the old now playing message.
             source.cleanup()
             self.current = None
-            await self.np.edit(view=discord.ui.View, embed=discord.Embed(title="Now Playing", description=f"[{source.title}]({source.web_url}) [{duration}] - {source.requester.mention}", color=discord.Color.green()))
+
+            embed = discord.Embed(title="Previously Playing", description=f"[{source.title}]({source.web_url}) [{duration}] - {source.requester.mention}", color=discord.Color.light_gray())
+            if self.np == 'context':
+                await ctx.edit(view=None, embed=embed)
+            else:
+                await self.np.edit(view=None, embed=embed)
 
             self.np = None
 
@@ -304,17 +316,25 @@ class Music(commands.Cog):
             The song to search and retrieve using YTDL. This could be a simple search, an ID or URL.
         """
         vc = ctx.voice_client
+        new = False
         if not vc:
+            new = True
             ret = await self.connect_(list, ctx, channel=channel)
             if ret is None: return
 
         player = self.get_player(ctx)
 
+        if not new and player.np is None:
+            await ctx.response.defer()
+
         # If download is False, source will be a dict which will be used later to regather the stream.
         # If download is True, source will be a discord.FFmpegPCMAudio with a VolumeTransformer.
         source = await YTDLSource.create_source(ctx, search, player.np, loop=self.bot.loop, download=False)
 
-        await player.queue.put(source)
+        if not new and player.np is None:
+            await player.queue.put((source, ctx))
+        else:
+            await player.queue.put((source, None))
 
     @slash_command(name='pause', description='pauses the current track')
     async def pause_(self, ctx):
