@@ -217,7 +217,7 @@ class MusicPlayer:
             # Make sure the FFmpeg process is cleaned up, and delete the old now playing message.
             source.cleanup()
             self.current = None
-            self.np.edit(embed=discord.Embed(title="Now Playing", description=f"[{source.title}]({source.web_url}) [{duration}] - {source.requester.mention}", color=discord.Color.green()))
+            await self.np.edit(embed=discord.Embed(title="Now Playing", description=f"[{source.title}]({source.web_url}) [{duration}] - {source.requester.mention}", color=discord.Color.green()))
 
     def destroy(self, guild):
         """Disconnect and cleanup the player."""
