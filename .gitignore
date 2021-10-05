@@ -1,0 +1,9 @@
+/.vscode/
+/ffmpeg/
+/mp3s/
+/pics/
+/archive/
+*.bat
+*.code-workspace
+*.sh
+*.ini
