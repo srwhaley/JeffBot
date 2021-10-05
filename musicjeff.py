@@ -114,7 +114,7 @@ class YTDLSource(discord.PCMVolumeTransformer):
         return self.__getattribute__(item)
 
     @classmethod
-    async def create_source(cls, ctx, search: str, *, loop, download=False):
+    async def create_source(cls, ctx, search: str, np, *, loop, download=False):
         loop = loop or asyncio.get_event_loop()
 
         to_run = partial(ytdl.extract_info, url=search, download=download)
@@ -124,8 +124,9 @@ class YTDLSource(discord.PCMVolumeTransformer):
             # take first item from a playlist
             data = data['entries'][0]
 
-        embed = discord.Embed(title="", description=f"Queued [{data['title']}]({data['webpage_url']}) [{ctx.author.mention}]", color=discord.Color.green())
-        await ctx.respond(embed=embed)
+        if np is not None:
+            embed = discord.Embed(title="", description=f"Queued [{data['title']}]({data['webpage_url']}) [{ctx.author.mention}]", color=discord.Color.green())
+            await ctx.respond(embed=embed)
 
         if download:
             source = ytdl.prepare_filename(data)
@@ -217,7 +218,9 @@ class MusicPlayer:
             # Make sure the FFmpeg process is cleaned up, and delete the old now playing message.
             source.cleanup()
             self.current = None
-            await self.np.edit(embed=discord.Embed(title="Now Playing", description=f"[{source.title}]({source.web_url}) [{duration}] - {source.requester.mention}", color=discord.Color.green()))
+            await self.np.edit(view=discord.ui.View, embed=discord.Embed(title="Now Playing", description=f"[{source.title}]({source.web_url}) [{duration}] - {source.requester.mention}", color=discord.Color.green()))
+
+            self.np = None
 
     def destroy(self, guild):
         """Disconnect and cleanup the player."""
@@ -309,7 +312,7 @@ class Music(commands.Cog):
 
         # If download is False, source will be a dict which will be used later to regather the stream.
         # If download is True, source will be a discord.FFmpegPCMAudio with a VolumeTransformer.
-        source = await YTDLSource.create_source(ctx, search, loop=self.bot.loop, download=False)
+        source = await YTDLSource.create_source(ctx, search, player.np, loop=self.bot.loop, download=False)
 
         await player.queue.put(source)
 
