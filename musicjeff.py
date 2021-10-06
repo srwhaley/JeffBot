@@ -269,7 +269,7 @@ class Music(commands.Cog):
         return player
 
     @slash_command(name='connect', description='connects MusicJeff to voice')
-    async def connect_(self, ctx, *, channel: Option(discord.VoiceChannel, description='Channel for MusicJeff to join', required=False)=None):
+    async def connect_(self, ctx, *play, channel: Option(discord.VoiceChannel, description='Channel for MusicJeff to join', required=False)=None):
         """Connect to voice.
         Parameters
         ------------
@@ -299,10 +299,8 @@ class Music(commands.Cog):
             except asyncio.TimeoutError:
                 return await ctx.respond(f'Connecting to channel: <{channel}> timed out.')
 
-        await ctx.respond(f'**Joined `{channel}`**')
-        # view = discord.ui.View()
-        # view.add_item(mybuttons())
-        # await ctx.send("test", view=view)
+        if not play:
+            await ctx.respond(f'**Joined `{channel}`**')
         return True
 
     @slash_command(name='play', description='adds a video to the queue')
@@ -316,22 +314,18 @@ class Music(commands.Cog):
             The song to search and retrieve using YTDL. This could be a simple search, an ID or URL.
         """
         vc = ctx.voice_client
-        new = False
+        await ctx.response.defer()
         if not vc:
-            new = True
-            ret = await self.connect_(list, ctx, channel=channel)
+            ret = await self.connect_(list, ctx, True, channel=channel)
             if ret is None: return
 
         player = self.get_player(ctx)
-
-        if not new and player.np is None:
-            await ctx.response.defer()
 
         # If download is False, source will be a dict which will be used later to regather the stream.
         # If download is True, source will be a discord.FFmpegPCMAudio with a VolumeTransformer.
         source = await YTDLSource.create_source(ctx, search, player.np, loop=self.bot.loop, download=False)
 
-        if not new and player.np is None:
+        if player.np is None:
             await player.queue.put((source, ctx))
         else:
             await player.queue.put((source, None))
