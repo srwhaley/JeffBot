@@ -227,10 +227,13 @@ class MusicPlayer:
             self.current = None
 
             embed = discord.Embed(title="Previously Playing", description=f"[{source.title}]({source.web_url}) [{duration}] - {source.requester.mention}", color=discord.Color.light_gray())
-            if self.np == 'context':
-                await ctx.edit(view=None, embed=embed)
-            else:
-                await self.np.edit(view=None, embed=embed)
+            try:
+                if self.np == 'context':
+                    await ctx.edit(view=None, embed=embed)
+                else:
+                    await self.np.edit(view=None, embed=embed)
+            except:
+                await self._channel.send(content='_ _', embed=embed)
 
             self.np = None
 
