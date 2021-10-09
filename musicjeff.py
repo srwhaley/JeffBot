@@ -183,7 +183,7 @@ class MusicPlayer:
     When the bot disconnects from the Voice it's instance will be destroyed.
     """
 
-    __slots__ = ('bot', '_guild', '_channel', '_cog', 'queue', 'next', 'current', 'np', 'volume')
+    __slots__ = ('bot', '_guild', '_channel', '_cog', 'queue', 'next', 'current', 'np', 'volume', 'skipped')
 
     def __init__(self, ctx):
         self.bot = ctx.bot
@@ -197,6 +197,7 @@ class MusicPlayer:
         self.np = None  # Now playing message
         self.volume = .5
         self.current = None
+        self.skipped = False
 
         ctx.bot.loop.create_task(self.player_loop())
 
@@ -226,6 +227,7 @@ class MusicPlayer:
 
             source.volume = self.volume
             self.current = source
+            self.skipped = False
 
             self._guild.voice_client.play(source, after=lambda _: self.bot.loop.call_soon_threadsafe(self.next.set))
             duration = dur_calc(source.duration)
@@ -246,11 +248,12 @@ class MusicPlayer:
             source.cleanup()
             self.current = None
 
-            embed = discord.Embed(title="Previously Playing", description=f"[{source.title}]({source.web_url}) [{duration}] - {source.requester.mention}", color=discord.Color.light_gray())
-            try:
-                await self.np.edit(view=None, embed=embed)
-            except:
-                await self._channel.send(content='_ _', embed=embed)
+            if not self.skipped:
+                embed = discord.Embed(title="Previously Playing", description=f"[{source.title}]({source.web_url}) [{duration}] - {source.requester.mention}", color=discord.Color.light_gray())
+                try:
+                    await self.np.edit(view=None, embed=embed)
+                except:
+                    await self._channel.send(content='_ _', embed=embed)
 
             self.np = None
 
@@ -414,22 +417,20 @@ class Music(commands.Cog):
         elif not vc.is_playing():
             return await ctx.respond('Not playing anything!', ephemeral=True)
 
+        await ctx.response.defer(ephemeral=True)
+        player = self.get_player(ctx)
+        player.skipped = True
+        np = player.np
+        duration = dur_calc(vc.source.duration)
+        embed = discord.Embed(title=f"Skipped - [@{ctx.user.display_name}]", 
+                                    description=f"[{vc.source.title}]({vc.source.web_url}) [{duration}] - {vc.source.requester.mention}", 
+                                    color=discord.Color.light_gray())
         vc.stop()
-        ctx.respond(f"{ctx.user.mention}: Skipped!")
-        # await ctx.response.defer(ephemeral=True)
-        # player = self.get_player(ctx)
-        # np = player.np
-        # try:
-        #     duration = dur_calc(vc.source.duration)
-        #     embed = discord.Embed(title=f"Skipped - [@{ctx.user.display_name}]", 
-        #                               description=f"[{vc.source.title}]({vc.source.web_url}) [{duration}] - {vc.source.requester.mention}", 
-        #                               color=discord.Color.light_gray())
-        #     vc.stop()
-        #     time.sleep(2)
-        #     return await np.edit(embed=embed)
-        # except:
-        #     vc.stop()
-        #     return await ctx.respond('Skipped!')
+        await ctx.respond('Skipped!', ephemeral=False)
+        try:
+            return await np.edit(view=None, embed=embed)
+        except:
+            return await ctx.respond('Skipped!')
     
     @slash_command(name='remove', description='removes a specific song in the queue')
     async def remove_(self, ctx, pos: Option(int, description="position in queue to remove")):
