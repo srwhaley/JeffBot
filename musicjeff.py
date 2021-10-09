@@ -1,3 +1,4 @@
+import time
 import discord
 import asyncio
 import itertools
@@ -7,7 +8,6 @@ from functools import partial
 from async_timeout import timeout
 from discord.ext import commands
 from discord.app import slash_command, Option
-from discord import FFmpegPCMAudio, PCMVolumeTransformer
 
 # Setting YTDL stuff
 youtube_dl.utils.bug_reports_message = lambda: ''
@@ -34,62 +34,91 @@ config = configparser.ConfigParser()
 config.read('tokens.ini')
 
 ## Buttons for the now playing message
-class SkipButton(discord.ui.Button):
-    def __init__(self, vc):
-        super().__init__(label='Skip', style=discord.ButtonStyle.danger)
-        self.vc = vc
-
-    async def callback(self, interaction):
-        if not self.vc or not self.vc.is_connected():
-            return await interaction.response.send_message('I am not currently connected to voice.', ephemeral=True)
-
-        if self.vc.is_paused():
-            pass
-        elif not self.vc.is_playing():
-            return await interaction.response.send_message('Not playing anything!', ephemeral=True)
-
-        self.vc.stop()
-        await interaction.response.send_message(f"{interaction.user.mention}: Skipped!")
-
-class PauseButton(discord.ui.Button):
-    def __init__(self, vc):
-        super().__init__(label='Pause', style=discord.ButtonStyle.primary)
-        self.vc = vc
-
-    async def callback(self, interaction):
-        if not self.vc or not self.vc.is_connected():
-            return await interaction.response.send_message('I am not currently connected to voice.', ephemeral=True)
-
-        if not self.vc or not self.vc.is_playing():
-            return await interaction.response.send_message('Not playing anything!', ephemeral=True)
-        elif self.vc.is_paused():
-            return
-
-        self.vc.pause()
-        await interaction.response.send_message(f"{interaction.user.mention}: Paused ⏸️")
-
-class ResumeButton(discord.ui.Button):
-    def __init__(self, vc):
-        super().__init__(label='Resume', style=discord.ButtonStyle.success)
-        self.vc = vc
-
-    async def callback(self, interaction):
-        if not self.vc or not self.vc.is_connected():
-            return await interaction.response.send_message('I am not currently connected to voice.', ephemeral=True)
-
-        if not self.vc.is_paused():
-            return
-
-        self.vc.resume()
-        await interaction.response.send_message(f"{interaction.user.mention}: Resuming ⏯️")
-
 class PlayerButtonView(discord.ui.View):
-    def __init__(self, vc):
+    def __init__(self, vc, source, ctx):
         super().__init__()
-        self.vc = vc
-        self.add_item(ResumeButton(vc))
-        self.add_item(PauseButton(vc))
-        self.add_item(SkipButton(vc))
+        self.add_item(self.ResumeButton(vc, source, ctx))
+        self.add_item(self.PauseButton(vc, source, ctx))
+        self.add_item(self.SkipButton(vc, source, ctx))
+    
+    class SkipButton(discord.ui.Button):
+        def __init__(self, vc, source, ctx):
+            super().__init__(label='Skip', style=discord.ButtonStyle.danger)
+            self.vc = vc
+            self.source = source
+            self.ctx = ctx
+
+        async def callback(self, interaction):
+            if not self.vc or not self.vc.is_connected():
+                return await interaction.response.send_message('I am not currently connected to voice.', ephemeral=True)
+
+            if self.vc.is_paused():
+                pass
+            elif not self.vc.is_playing():
+                return await interaction.response.send_message('Not playing anything!', ephemeral=True)
+
+            self.vc.stop()
+            await interaction.response.defer(ephemeral=True)
+            try:
+                duration = dur_calc(self.source.duration)
+                embed = discord.Embed(title=f"Skipped - [@{interaction.user.display_name}]", description=f"[{self.source.title}]({self.source.web_url}) [{duration}] - {self.source.requester.mention}", 
+                                      color=discord.Color.light_gray())
+                await self.ctx.edit(embed=embed)
+            except:
+                await interaction.response.send_message(f"{interaction.user.mention}: Skipped!")
+
+    class PauseButton(discord.ui.Button):
+        def __init__(self, vc, source, ctx):
+            super().__init__(label='Pause', style=discord.ButtonStyle.primary)
+            self.vc = vc
+            self.source = source
+            self.ctx = ctx
+
+        async def callback(self, interaction):
+            if not self.vc or not self.vc.is_connected():
+                return await interaction.response.send_message('I am not currently connected to voice.', ephemeral=True)
+
+            if not self.vc or not self.vc.is_playing():
+                return await interaction.response.send_message('Not playing anything!', ephemeral=True)
+            elif self.vc.is_paused():
+                return
+
+            self.vc.pause()
+            await interaction.response.defer(ephemeral=True)
+            try:
+                duration = dur_calc(self.source.duration)
+                embed = discord.Embed(title=f"Paused - [@{interaction.user.display_name}]", 
+                                      description=f"[{self.source.title}]({self.source.web_url}) [{duration}] - {self.source.requester.mention}", 
+                                      color=discord.Color.light_gray())
+                embed.set_image(url=self.source.thumbnails[-1]['url'])
+                await self.ctx.edit(embed=embed)
+            except:
+                await interaction.response.send_message(f"{interaction.user.mention}: Paused ⏸️")
+
+    class ResumeButton(discord.ui.Button):
+        def __init__(self, vc, source, ctx):
+            super().__init__(label='Resume', style=discord.ButtonStyle.success)
+            self.vc = vc
+            self.source = source
+            self.ctx = ctx
+
+        async def callback(self, interaction):
+            if not self.vc or not self.vc.is_connected():
+                return await interaction.response.send_message('I am not currently connected to voice.', ephemeral=True)
+
+            if not self.vc.is_paused():
+                return
+
+            self.vc.resume()
+            await interaction.response.defer(ephemeral=True)
+            try:
+                duration = dur_calc(self.source.duration)
+                embed = discord.Embed(title=f"Now Playing", description=f"[{self.source.title}]({self.source.web_url}) [{duration}] - {self.source.requester.mention}", 
+                                      color=discord.Color.green())
+                embed.set_image(url=self.source.thumbnails[-1]['url'])
+                await self.ctx.edit(embed=embed)
+            except:
+                await interaction.response.send_message(f"{interaction.user.mention}: Resuming ⏯️")
 
 
 ## Music classes
@@ -199,25 +228,16 @@ class MusicPlayer:
             self.current = source
 
             self._guild.voice_client.play(source, after=lambda _: self.bot.loop.call_soon_threadsafe(self.next.set))
-            seconds = source.duration % (24 * 3600) 
-            hour = seconds // 3600
-            seconds %= 3600
-            minutes = seconds // 60
-            seconds %= 60
-            if hour > 0:
-                duration = "%dh %02dm %02ds" % (hour, minutes, seconds)
-            else:
-                duration = "%02dm %02ds" % (minutes, seconds)
-
+            duration = dur_calc(source.duration)
 
             embed = discord.Embed(title="Now Playing", description=f"[{source.title}]({source.web_url}) [{duration}] - {source.requester.mention}", color=discord.Color.green())
             embed.set_image(url=source.thumbnails[-1]['url'])
             if ctx is not None:
-                await ctx.respond(content='_ _', embed=embed, view=PlayerButtonView(self._guild.voice_client))
-                self.np = 'context'
+                await ctx.respond(content='_ _', embed=embed, view=PlayerButtonView(self._guild.voice_client, source, ctx))
+                self.np = ctx
 
             else:
-                self.np = await self._channel.send(content='_ _', embed=embed, view=PlayerButtonView(self._guild.voice_client))
+                self.np = await self._channel.send(content='_ _', embed=embed, view=PlayerButtonView(self._guild.voice_client, source, self.np))
             
             # Wait for the song to finish
             await self.next.wait()
@@ -228,10 +248,7 @@ class MusicPlayer:
 
             embed = discord.Embed(title="Previously Playing", description=f"[{source.title}]({source.web_url}) [{duration}] - {source.requester.mention}", color=discord.Color.light_gray())
             try:
-                if self.np == 'context':
-                    await ctx.edit(view=None, embed=embed)
-                else:
-                    await self.np.edit(view=None, embed=embed)
+                await self.np.edit(view=None, embed=embed)
             except:
                 await self._channel.send(content='_ _', embed=embed)
 
@@ -272,7 +289,7 @@ class Music(commands.Cog):
         return player
 
     @slash_command(name='connect', description='connects MusicJeff to voice')
-    async def connect_(self, ctx, *play, channel: Option(discord.VoiceChannel, description='Channel for MusicJeff to join', required=False)=None):
+    async def connect_(self, ctx, play: Option(bool, description='ignore', required=False)=False, channel: Option(discord.VoiceChannel, description='Channel for MusicJeff to join', required=False)=None):
         """Connect to voice.
         Parameters
         ------------
@@ -350,7 +367,17 @@ class Music(commands.Cog):
             return await ctx.respond('Already paused', ephemeral=True)
 
         vc.pause()
-        await ctx.respond("Paused ⏸️")
+        await ctx.response.defer(ephemeral=True)
+        player = self.get_player(ctx)
+        try:
+            duration = dur_calc(vc.source.duration)
+            embed = discord.Embed(title=f"Paused - [@{ctx.user.display_name}]", 
+                                      description=f"[{vc.source.title}]({vc.source.web_url}) [{duration}] - {vc.source.requester.mention}", 
+                                      color=discord.Color.light_gray())
+            embed.set_image(url=vc.source.thumbnails[-1]['url'])
+            return await player.np.edit(embed=embed)
+        except:
+            await ctx.respond("Paused ⏸️")
 
     @slash_command(name='resume', description='resumes the player')
     async def resume_(self, ctx):
@@ -363,7 +390,17 @@ class Music(commands.Cog):
             return
 
         vc.resume()
-        await ctx.respond("Resuming ⏯️")
+        await ctx.response.defer(ephemeral=True)
+        player = self.get_player(ctx)
+        try:
+            duration = dur_calc(vc.source.duration)
+            embed = discord.Embed(title=f"Now Playing", 
+                                  description=f"[{vc.source.title}]({vc.source.web_url}) [{duration}] - {vc.source.requester.mention}", 
+                                  color=discord.Color.green())
+            embed.set_image(url=vc.source.thumbnails[-1]['url'])
+            return await player.np.edit(embed=embed)
+        except:
+            await ctx.respond("Resuming ⏯️")
 
     @slash_command(name='skip', description='skips to the next song in queue')
     async def skip_(self, ctx):
@@ -378,7 +415,21 @@ class Music(commands.Cog):
             return await ctx.respond('Not playing anything!', ephemeral=True)
 
         vc.stop()
-        return await ctx.respond('Skipped!')
+        ctx.respond(f"{ctx.user.mention}: Skipped!")
+        # await ctx.response.defer(ephemeral=True)
+        # player = self.get_player(ctx)
+        # np = player.np
+        # try:
+        #     duration = dur_calc(vc.source.duration)
+        #     embed = discord.Embed(title=f"Skipped - [@{ctx.user.display_name}]", 
+        #                               description=f"[{vc.source.title}]({vc.source.web_url}) [{duration}] - {vc.source.requester.mention}", 
+        #                               color=discord.Color.light_gray())
+        #     vc.stop()
+        #     time.sleep(2)
+        #     return await np.edit(embed=embed)
+        # except:
+        #     vc.stop()
+        #     return await ctx.respond('Skipped!')
     
     @slash_command(name='remove', description='removes a specific song in the queue')
     async def remove_(self, ctx, pos: Option(int, description="position in queue to remove")):
@@ -418,8 +469,7 @@ class Music(commands.Cog):
 
         player = self.get_player(ctx)
         if player.queue.empty():
-            embed = discord.Embed(title="", description="queue is empty", color=discord.Color.green())
-            return await ctx.respond(embed=embed)
+            return await ctx.respond('Queue is empty!', ephemeral=True)
 
         seconds = vc.source.duration % (24 * 3600) 
         hour = seconds // 3600
@@ -476,6 +526,20 @@ class Music(commands.Cog):
 
         await ctx.respond('**Successfully disconnected**')
         await self.cleanup(ctx.guild)
+
+
+## Function to calc durations
+def dur_calc(duration):
+    seconds = duration % (24 * 3600) 
+    hour = seconds // 3600
+    seconds %= 3600
+    minutes = seconds // 60
+    seconds %= 60
+    if hour > 0:
+        duration = "%dh %02dm %02ds" % (hour, minutes, seconds)
+    else:
+        duration = "%02dm %02ds" % (minutes, seconds)
+    return duration
 
 
 ## Adding the music cog and running
