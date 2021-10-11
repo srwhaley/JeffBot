@@ -63,7 +63,7 @@ class PlayerButtonView(discord.ui.View):
                 duration = dur_calc(self.source.duration)
                 embed = discord.Embed(title=f"Skipped - [@{interaction.user.display_name}]", description=f"[{self.source.title}]({self.source.web_url}) [{duration}] - {self.source.requester.mention}", 
                                       color=discord.Color.light_gray())
-                await self.ctx.edit(embed=embed)
+                await self.ctx.edit(content='_ _', view=None, embed=embed)
             except:
                 await interaction.response.send_message(f"{interaction.user.mention}: Skipped!")
 
@@ -251,7 +251,7 @@ class MusicPlayer:
             if not self.skipped:
                 embed = discord.Embed(title="Previously Playing", description=f"[{source.title}]({source.web_url}) [{duration}] - {source.requester.mention}", color=discord.Color.light_gray())
                 try:
-                    await self.np.edit(view=None, embed=embed)
+                    await self.np.edit(content='_ _', view=None, embed=embed)
                 except:
                     await self._channel.send(content='_ _', embed=embed)
 
@@ -417,7 +417,7 @@ class Music(commands.Cog):
         elif not vc.is_playing():
             return await ctx.respond('Not playing anything!', ephemeral=True)
 
-        await ctx.response.defer(ephemeral=True)
+        await ctx.response.defer()
         player = self.get_player(ctx)
         player.skipped = True
         np = player.np
@@ -426,11 +426,11 @@ class Music(commands.Cog):
                                     description=f"[{vc.source.title}]({vc.source.web_url}) [{duration}] - {vc.source.requester.mention}", 
                                     color=discord.Color.light_gray())
         vc.stop()
-        await ctx.respond('Skipped!', ephemeral=False)
         try:
-            return await np.edit(view=None, embed=embed)
+            await np.edit(embed=embed, view=None)
+            await ctx.respond('Skipped!', ephemeral=True)
         except:
-            return await ctx.respond('Skipped!')
+            await ctx.respond('Skipped!', ephemeral=False)
     
     @slash_command(name='remove', description='removes a specific song in the queue')
     async def remove_(self, ctx, pos: Option(int, description="position in queue to remove")):
