@@ -4,6 +4,7 @@ import configparser
 import random
 import discord
 import asyncio
+from discord import message
 import requests
 import traceback
 import numpy as np
@@ -249,7 +250,18 @@ async def add_emote(c_channel, c_text):
 async def cached_emotes(c_channel):
     es = list(config['emotes'].keys())
     es.sort()
-    await c_channel.send('Cached emotes: ' + ', '.join(es))
+    adder = ', '
+    ind = 0
+    messages = ['Cached emotes: ' + es[0]]
+    for emote in es[1:]:
+        if len(messages[ind]) + len(adder + emote) >= 2000:
+            ind += 1
+            messages.append('Cached emotes [cont]: ' + emote)
+        else:
+            messages[ind] = messages[ind] + adder + emote
+    
+    for mess in messages:
+        await c_channel.send(mess)
 
 
 ## audio commands
