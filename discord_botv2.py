@@ -60,7 +60,7 @@ class MyClient(discord.Client):
                        (c_text == '.f', bigf, (c_channel,)),
                        ('widepeepohappy' in c_text, widepeepo, (c_message, c_channel)),
                        (c_text[:5] == '.flip', coin_flip, (c_channel, c_text)),
-                       (c_text[:12] == 'join my coop', bloons, (c_message, c_channel, c_text)),
+                       (c_text[:12] == 'join my coop' or c_text[:12] == 'join my boss', bloons, (c_message, c_channel, c_text)),
                        (c_text[:6] == '.annoy', caller, (c_channel, c_message))]
             
             for condition, func, inputs in options:
