@@ -27,7 +27,7 @@ ffmpeg_options = {'options': '-vn',
 ytdl = youtube_dl.YoutubeDL(ytdl_format_options)
 
 ## Setting up bot
-bot = commands.Bot(debug_guilds=[731642860025282653, 217815052508463105]) #debug_guild=217815052508463105 // #debug_guild=731642860025282653
+bot = commands.Bot(debug_guilds=[217815052508463105])#, 217815052508463105]) #debug_guild=217815052508463105 // #debug_guild=731642860025282653
 
 ## Reading config
 config = configparser.ConfigParser()
