@@ -1,3 +1,4 @@
+import re
 import time
 import discord
 import asyncio
@@ -7,7 +8,8 @@ import configparser
 from functools import partial
 from async_timeout import timeout
 from discord.ext import commands
-from discord.app import slash_command, Option
+from discord import Option
+from discord.commands import slash_command
 
 # Setting YTDL stuff
 youtube_dl.utils.bug_reports_message = lambda: ''
@@ -23,11 +25,11 @@ ytdl_format_options = {'format': 'bestaudio/best',
     'default_search': 'auto',
     'source_address': '0.0.0.0'} # bind to ipv4 since ipv6 addresses cause issues sometimes}
 ffmpeg_options = {'options': '-vn',
-                  "before_options": "-reconnect 1 -reconnect_streamed 1 -reconnect_delay_max 5"}
+                  'before_options': '-reconnect 1 -reconnect_streamed 1 -reconnect_delay_max 5'}
 ytdl = youtube_dl.YoutubeDL(ytdl_format_options)
 
 ## Setting up bot
-bot = commands.Bot(debug_guilds=[217815052508463105])#, 217815052508463105]) #debug_guild=217815052508463105 // #debug_guild=731642860025282653
+bot = commands.Bot(debug_guilds=[731642860025282653, 217815052508463105])#, 217815052508463105]) #debug_guild=217815052508463105 // #debug_guild=731642860025282653
 
 ## Reading config
 config = configparser.ConfigParser()
@@ -35,17 +37,18 @@ config.read('tokens.ini')
 
 ## Buttons for the now playing message
 class PlayerButtonView(discord.ui.View):
-    def __init__(self, vc, source, ctx):
-        super().__init__()
-        self.add_item(self.ResumeButton(vc, source, ctx))
-        self.add_item(self.PauseButton(vc, source, ctx))
-        self.add_item(self.SkipButton(vc, source, ctx))
+    def __init__(self, player, ctx):
+        super().__init__(timeout=None)
+        self.add_item(self.ResumeButton(player, ctx))
+        self.add_item(self.PauseButton(player, ctx))
+        self.add_item(self.SkipButton(player, ctx))
     
     class SkipButton(discord.ui.Button):
-        def __init__(self, vc, source, ctx):
+        def __init__(self, player, ctx):
             super().__init__(label='Skip', style=discord.ButtonStyle.danger)
-            self.vc = vc
-            self.source = source
+            self.vc = player._guild.voice_client
+            self.source = player.current
+            self.player = player
             self.ctx = ctx
 
         async def callback(self, interaction):
@@ -57,21 +60,22 @@ class PlayerButtonView(discord.ui.View):
             elif not self.vc.is_playing():
                 return await interaction.response.send_message('Not playing anything!', ephemeral=True)
 
+            self.player.skipped = True
             self.vc.stop()
-            await interaction.response.defer(ephemeral=True)
             try:
                 duration = dur_calc(self.source.duration)
                 embed = discord.Embed(title=f"Skipped - [@{interaction.user.display_name}]", description=f"[{self.source.title}]({self.source.web_url}) [{duration}] - {self.source.requester.mention}", 
                                       color=discord.Color.light_gray())
                 await self.ctx.edit(content='_ _', view=None, embed=embed)
-            except:
+            except Exception as e:
+                print(e.args)
                 await interaction.response.send_message(f"{interaction.user.mention}: Skipped!")
 
     class PauseButton(discord.ui.Button):
-        def __init__(self, vc, source, ctx):
+        def __init__(self, player, ctx):
             super().__init__(label='Pause', style=discord.ButtonStyle.primary)
-            self.vc = vc
-            self.source = source
+            self.vc = player._guild.voice_client
+            self.source = player.current
             self.ctx = ctx
 
         async def callback(self, interaction):
@@ -84,7 +88,6 @@ class PlayerButtonView(discord.ui.View):
                 return
 
             self.vc.pause()
-            await interaction.response.defer(ephemeral=True)
             try:
                 duration = dur_calc(self.source.duration)
                 embed = discord.Embed(title=f"Paused - [@{interaction.user.display_name}]", 
@@ -92,14 +95,15 @@ class PlayerButtonView(discord.ui.View):
                                       color=discord.Color.light_gray())
                 embed.set_image(url=self.source.thumbnails[-1]['url'])
                 await self.ctx.edit(embed=embed)
-            except:
+            except Exception as e:
+                print(e.args)
                 await interaction.response.send_message(f"{interaction.user.mention}: Paused ⏸️")
 
     class ResumeButton(discord.ui.Button):
-        def __init__(self, vc, source, ctx):
+        def __init__(self, player, ctx):
             super().__init__(label='Resume', style=discord.ButtonStyle.success)
-            self.vc = vc
-            self.source = source
+            self.vc = player._guild.voice_client
+            self.source = player.current
             self.ctx = ctx
 
         async def callback(self, interaction):
@@ -110,14 +114,14 @@ class PlayerButtonView(discord.ui.View):
                 return
 
             self.vc.resume()
-            await interaction.response.defer(ephemeral=True)
             try:
                 duration = dur_calc(self.source.duration)
                 embed = discord.Embed(title=f"Now Playing", description=f"[{self.source.title}]({self.source.web_url}) [{duration}] - {self.source.requester.mention}", 
                                       color=discord.Color.green())
                 embed.set_image(url=self.source.thumbnails[-1]['url'])
                 await self.ctx.edit(embed=embed)
-            except:
+            except Exception as e:
+                print(e.args)
                 await interaction.response.send_message(f"{interaction.user.mention}: Resuming ⏯️")
 
 
@@ -143,10 +147,10 @@ class YTDLSource(discord.PCMVolumeTransformer):
         return self.__getattribute__(item)
 
     @classmethod
-    async def create_source(cls, ctx, search: str, np, *, loop, download=False):
+    async def create_source(self, ctx, search: str, np, *, loop, timestamp=False):
         loop = loop or asyncio.get_event_loop()
 
-        to_run = partial(ytdl.extract_info, url=search, download=download)
+        to_run = partial(ytdl.extract_info, url=search, download=False)
         data = await loop.run_in_executor(None, to_run)
 
         if 'entries' in data:
@@ -157,24 +161,26 @@ class YTDLSource(discord.PCMVolumeTransformer):
             embed = discord.Embed(title="", description=f"Queued [{data['title']}]({data['webpage_url']}) [{ctx.author.mention}]", color=discord.Color.green())
             await ctx.respond(embed=embed)
 
-        if download:
-            source = ytdl.prepare_filename(data)
-        else:
+        if timestamp:
+            return {'webpage_url': data['webpage_url'], 'requester': ctx.author, 'title': data['title'], 'timestamp': timestamp}
+        else:   
             return {'webpage_url': data['webpage_url'], 'requester': ctx.author, 'title': data['title']}
 
-        return cls(discord.FFmpegPCMAudio(source, **ffmpeg_options), data=data, requester=ctx.author)
-
     @classmethod
-    async def regather_stream(cls, data, *, loop):
+    async def regather_stream(self, data, *, loop):
         """Used for preparing a stream, instead of downloading.
         Since Youtube Streaming links expire."""
         loop = loop or asyncio.get_event_loop()
         requester = data['requester']
 
+        temp_options = ffmpeg_options.copy()
+        if 'timestamp' in data.keys():
+            temp_options['before_options'] = temp_options['before_options'] + f' -ss {data["timestamp"]}'
+
         to_run = partial(ytdl.extract_info, url=data['webpage_url'], download=False)
         data = await loop.run_in_executor(None, to_run)
 
-        return cls(discord.FFmpegPCMAudio(data['url'], **ffmpeg_options), data=data, requester=requester)
+        return self(discord.FFmpegPCMAudio(data['url'], **temp_options), data=data, requester=requester)
 
 class MusicPlayer:
     """A class which is assigned to each guild using the bot for Music.
@@ -191,7 +197,7 @@ class MusicPlayer:
         self._channel = ctx.channel
         self._cog = ctx.bot.cogs['Music']
 
-        self.queue = asyncio.Queue()
+        self.queue = asyncio.PriorityQueue()
         self.next = asyncio.Event()
 
         self.np = None  # Now playing message
@@ -211,7 +217,7 @@ class MusicPlayer:
             try:
                 # Wait for the next song. If we timeout cancel the player and disconnect...
                 async with timeout(300):  # 5 minutes...
-                    source, ctx = await self.queue.get()
+                    _, (source, ctx) = await self.queue.get()
             except asyncio.TimeoutError:
                 return self.destroy(self._guild)
 
@@ -235,11 +241,12 @@ class MusicPlayer:
             embed = discord.Embed(title="Now Playing", description=f"[{source.title}]({source.web_url}) [{duration}] - {source.requester.mention}", color=discord.Color.green())
             embed.set_image(url=source.thumbnails[-1]['url'])
             if ctx is not None:
-                await ctx.respond(content='_ _', embed=embed, view=PlayerButtonView(self._guild.voice_client, source, ctx))
+                await ctx.respond(content='_ _', embed=embed, view=PlayerButtonView(self, ctx))
                 self.np = ctx
 
             else:
-                self.np = await self._channel.send(content='_ _', embed=embed, view=PlayerButtonView(self._guild.voice_client, source, self.np))
+                self.np = await self._channel.send(content='_ _', embed=embed)
+                await self.np.edit(view=PlayerButtonView(self, self.np))
             
             # Wait for the song to finish
             await self.next.wait()
@@ -247,7 +254,6 @@ class MusicPlayer:
             # Make sure the FFmpeg process is cleaned up, and delete the old now playing message.
             source.cleanup()
             self.current = None
-
             if not self.skipped:
                 embed = discord.Embed(title="Previously Playing", description=f"[{source.title}]({source.web_url}) [{duration}] - {source.requester.mention}", color=discord.Color.light_gray())
                 try:
@@ -347,15 +353,15 @@ class Music(commands.Cog):
         # If download is False, source will be a dict which will be used later to regather the stream.
         # If download is True, source will be a discord.FFmpegPCMAudio with a VolumeTransformer.
         try:
-            source = await YTDLSource.create_source(ctx, search, player.np, loop=self.bot.loop, download=False)
+            source = await YTDLSource.create_source(ctx, search, player.np, loop=self.bot.loop)
         except youtube_dl.utils.DownloadError:
             await ctx.respond('Naughty boy!')
             return
 
         if player.np is None:
-            await player.queue.put((source, ctx))
+            await player.queue.put((player.queue.qsize()+1, (source, ctx)))
         else:
-            await player.queue.put((source, None))
+            await player.queue.put((player.queue.qsize()+1, (source, None)))
 
     @slash_command(name='pause', description='pauses the current track')
     async def pause_(self, ctx):
@@ -432,6 +438,36 @@ class Music(commands.Cog):
         except:
             await ctx.respond('Skipped!', ephemeral=False)
     
+    @slash_command(name='seek', description='seek to a specific point in the video')
+    async def seek_(self, ctx, *, timestamp: Option(str, description='URL or text to search YT')):
+        vc = ctx.voice_client
+        if not vc or not vc.is_connected():
+            return await ctx.respond('I am not currently connected to voice.', ephemeral=True)
+
+        if not vc or not vc.is_playing():
+            return await ctx.respond('Not playing anything to seek!', ephemeral=True)
+        
+        await ctx.response.defer()
+        player = self.get_player(ctx)
+
+        search = player.current.web_url
+        criteria = re.findall(r'(?:[0-9]+:)*(?:[0-9]+:[0-9]{2,})+(?:.[0-9]+)*', timestamp) + re.findall(r'[0-9]+(?:\.*[0-9]+)*(?:s|ms|us)*', timestamp)
+
+        if not criteria or not criteria[0] == timestamp:
+            return await ctx.respond('Bad format!', ephemeral=True)
+
+        try:
+            source = await YTDLSource.create_source(ctx, search, None, loop=self.bot.loop, timestamp=criteria[0])
+        except youtube_dl.utils.DownloadError:
+            await ctx.respond('Naughty boy!')
+            return
+
+        await player.queue.put((0, (source, None)))
+        await player.np.delete()
+        player.skipped = True
+        vc.stop()
+        await ctx.respond(f'{ctx.user.mention}: Seeking to {criteria[0]}')
+
     @slash_command(name='remove', description='removes a specific song in the queue')
     async def remove_(self, ctx, pos: Option(int, description="position in queue to remove")):
         """Removes specified song from queue"""
