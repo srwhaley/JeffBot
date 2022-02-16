@@ -333,7 +333,10 @@ class Music(commands.Cog):
         return True
 
     @slash_command(name='play', description='adds a video to the queue')
-    async def play_(self, ctx, *, search: Option(str, description='URL or text to search YT'), channel: Option(discord.VoiceChannel, description='Channel for MusicJeff to join', required=False)=None):
+    async def play_(self, ctx, *, 
+                    search: Option(str, description='URL or text to search YT'), 
+                    channel: Option(discord.VoiceChannel, description='Channel for MusicJeff to join', required=False) = None,
+                    timestamp: Option(str, description='time to seek to in seconds or MM:SS', required=False) = None):
         """Request a song and add it to the queue.
         This command attempts to join a valid voice channel if the bot is not already in one.
         Uses YTDL to automatically search and retrieve a song.
@@ -350,13 +353,21 @@ class Music(commands.Cog):
 
         player = self.get_player(ctx)
 
-        # If download is False, source will be a dict which will be used later to regather the stream.
-        # If download is True, source will be a discord.FFmpegPCMAudio with a VolumeTransformer.
-        try:
-            source = await YTDLSource.create_source(ctx, search, player.np, loop=self.bot.loop)
-        except youtube_dl.utils.DownloadError:
-            await ctx.respond('Naughty boy!')
-            return
+        if timestamp is not None:
+            criteria = re.findall(r'(?:[0-9]+:)*(?:[0-9]+:[0-9]{2,})+(?:.[0-9]+)*', timestamp) + re.findall(r'[0-9]+(?:\.*[0-9]+)*(?:s|ms|us)*', timestamp)
+            if not criteria or not criteria[0] == timestamp:
+                return await ctx.respond('Bad format for timestamp!', ephemeral=True)
+
+            try:
+                source = await YTDLSource.create_source(ctx, search, player.np, loop=self.bot.loop, timestamp=criteria[0])
+            except youtube_dl.utils.DownloadError:
+                return await ctx.respond('Naughty boy!')
+        
+        else:
+            try:
+                source = await YTDLSource.create_source(ctx, search, player.np, loop=self.bot.loop)
+            except youtube_dl.utils.DownloadError:
+                return await ctx.respond('Naughty boy!')
 
         if player.np is None:
             await player.queue.put((player.queue.qsize()+1, (source, ctx)))
@@ -439,7 +450,7 @@ class Music(commands.Cog):
             await ctx.respond('Skipped!', ephemeral=False)
     
     @slash_command(name='seek', description='seek to a specific point in the video')
-    async def seek_(self, ctx, *, timestamp: Option(str, description='URL or text to search YT')):
+    async def seek_(self, ctx, *, timestamp: Option(str, description='time to seek to in seconds or MM:SS')):
         vc = ctx.voice_client
         if not vc or not vc.is_connected():
             return await ctx.respond('I am not currently connected to voice.', ephemeral=True)
@@ -496,7 +507,6 @@ class Music(commands.Cog):
         player.queue._queue.clear()
         await ctx.respond('💣 **Queue cleared**')
 
-    ## TODO -- formatting?
     @slash_command(name='queue', description='displays the full queue')
     async def queue_info(self, ctx):
         """Retrieve a basic queue of upcoming songs."""
