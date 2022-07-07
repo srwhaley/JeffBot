@@ -79,7 +79,8 @@ class MyClient(discord.Client):
                        (c_text == '.hood', 'hood'),
                        (c_text == '.thanks', 'thanks'),
                        (c_text == '.johnson', 'johnson'),
-                       (c_text == '.retard' or c_text == '.fire', 'fire')]
+                       (c_text == '.retard' or c_text == '.fire', 'fire'),
+                       (c_text == '.chug', 'chug')]
             
             for condition, file in options:
                 if condition and c_author.voice is not None:
