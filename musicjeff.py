@@ -29,7 +29,9 @@ ffmpeg_options = {'options': '-vn',
 ytdl = youtube_dl.YoutubeDL(ytdl_format_options)
 
 ## Setting up bot
-bot = commands.Bot(debug_guilds=[731642860025282653, 217815052508463105])#, 217815052508463105]) #debug_guild=217815052508463105 // #debug_guild=731642860025282653
+intents = discord.Intents.default()
+intents.message_content = True
+bot = commands.Bot(debug_guilds=[731642860025282653, 217815052508463105], intents=intents)#, 217815052508463105]) #debug_guild=217815052508463105 // #debug_guild=731642860025282653
 
 ## Reading config
 config = configparser.ConfigParser()
@@ -346,6 +348,7 @@ class Music(commands.Cog):
             The song to search and retrieve using YTDL. This could be a simple search, an ID or URL.
         """
         vc = ctx.voice_client
+        print(channel)
         await ctx.response.defer()
         if not vc:
             ret = await self.connect_(list, ctx, True, channel=channel)

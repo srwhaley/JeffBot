@@ -10,38 +10,34 @@ import traceback
 import numpy as np
 from discord import FFmpegPCMAudio, PCMVolumeTransformer
 
-
-## loading default emotes
-config = configparser.ConfigParser()
-config.read('emotes.ini')
-config.read('tokens.ini')
-
 ## client class
-class MyClient(discord.Client):
-    def __init__(self, q):
-        self.timedict = {}
-        self.vc = None
-        self.queue = q
-        super().__init__()
-        # self.queue = queue
-        # for guild in self.guilds:
-        #     self.queue[guild] = []
-    
-    async def on_message(self, message):
+def create_client():
+    intents = discord.Intents.default()
+    intents.message_content = True
+    client = discord.Client(intents=intents)
+
+    client.timedict = {}
+    client.vc = None
+    q = asyncio.Queue()
+    asyncio.Task(myqueue(q))
+    client.queue = q
+
+    @client.event
+    async def on_message(message):
         c_message = message
         c_author = message.author
         c_channel = message.channel
         c_guild = message.guild
         c_text = message.content.lower().strip()
-        if c_author.id in self.timedict.keys():
-            if time.time() - self.timedict[c_author.id] < 0.5:
+        if c_author.id in client.timedict.keys():
+            if time.time() - client.timedict[c_author.id] < 0.5:
                 return
             else:
-                self.timedict[c_author.id] = time.time()  
+                client.timedict[c_author.id] = time.time()  
         else:
-            self.timedict[c_author.id] = time.time()
+            client.timedict[c_author.id] = time.time()
         
-        if c_author.id != self.user.id:
+        if c_author.id != client.user.id:
             if c_author.id == 151867104646266880 and np.random.random(1)[0] < 0.5:
                 try:
                     emoji = random.choice(c_message.guild.emojis)
@@ -52,16 +48,16 @@ class MyClient(discord.Client):
             
             # run through options that don't involve mp3 first
             options = [(c_text[:6] == '.emote' or c_text[:3] == '.e ' or c_text[:4] == '.ffz' or c_text[:5] == '.bttv', emote, (c_message, c_channel, c_text)),
-                       (c_text[:5] == '.adde', add_emote, (c_channel, c_text)),
-                       (c_text[:7] == '.cached', cached_emotes, (c_channel,)),
-                       (re.match(r'.clea[nr] [0-9]+', c_text), cleaner, (c_channel, c_text)),
-                       (c_text == '.howdy', howdy, (c_channel,)),
-                       (c_text == '.help', helper, (c_channel,)),
-                       (c_text == '.f', bigf, (c_channel,)),
-                       ('widepeepohappy' in c_text, widepeepo, (c_message, c_channel)),
-                       (c_text[:5] == '.flip', coin_flip, (c_channel, c_text)),
-                       (c_text[:12] == 'join my coop' or c_text[:12] == 'join my boss', bloons, (c_message, c_channel, c_text)),
-                       (c_text[:6] == '.annoy', caller, (c_channel, c_message))]
+                        (c_text[:5] == '.adde', add_emote, (c_channel, c_text)),
+                        (c_text[:7] == '.cached', cached_emotes, (c_channel,)),
+                        (re.match(r'.clea[nr] [0-9]+', c_text), cleaner, (c_channel, c_text)),
+                        (c_text == '.howdy', howdy, (c_channel,)),
+                        (c_text == '.help', helper, (c_channel,)),
+                        (c_text == '.f', bigf, (c_channel,)),
+                        ('widepeepohappy' in c_text, widepeepo, (c_message, c_channel)),
+                        (c_text[:5] == '.flip', coin_flip, (c_channel, c_text)),
+                        (c_text[:12] == 'join my coop' or c_text[:12] == 'join my boss', bloons, (c_message, c_channel, c_text)),
+                        (c_text[:6] == '.annoy', caller, (c_channel, c_message))]
             
             for condition, func, inputs in options:
                 if condition:
@@ -70,38 +66,39 @@ class MyClient(discord.Client):
             
             # then check for mp3
             options = [(c_text == '.jeff', 'jeff'),
-                       (c_text == '.ourtown' or c_text == '.yeahbeatit' or c_text == '.scrub', 'ourtown'),
-                       (c_text == '.allo', 'allo'),
-                       (c_text == '.ussr', 'ussr'),
-                       (c_text == '.ussr long', 'ussr long'),
-                       (c_text == '.mk' or c_text == '.mustard' or c_text == '.ketchup', 'mustard'),
-                       (c_text == '.mayo' or c_text == '.harold', 'mayo'),
-                       (c_text == '.hood', 'hood'),
-                       (c_text == '.thanks', 'thanks'),
-                       (c_text == '.johnson', 'johnson'),
-                       (c_text == '.retard' or c_text == '.fire', 'fire'),
-                       (c_text == '.chug', 'chug')]
+                        (c_text == '.ourtown' or c_text == '.yeahbeatit' or c_text == '.scrub', 'ourtown'),
+                        (c_text == '.allo', 'allo'),
+                        (c_text == '.ussr', 'ussr'),
+                        (c_text == '.ussr long', 'ussr long'),
+                        (c_text == '.mk' or c_text == '.mustard' or c_text == '.ketchup', 'mustard'),
+                        (c_text == '.mayo' or c_text == '.harold', 'mayo'),
+                        (c_text == '.hood', 'hood'),
+                        (c_text == '.thanks', 'thanks'),
+                        (c_text == '.johnson', 'johnson'),
+                        (c_text == '.retard' or c_text == '.fire', 'fire'),
+                        (c_text == '.chug', 'chug')]
             
             for condition, file in options:
                 if condition and c_author.voice is not None:
-                    # self.queue[c_guild].append((c_author.voice, c_channel, file))
-                    self.queue.put_nowait(create_audio_source(c_author, c_channel, file))
+                    # client.queue[c_guild].append((c_author.voice, c_channel, file))
+                    client.queue.put_nowait(create_audio_source(c_author, c_channel, file))
                     return
 
             # if the text is skip, skip currently performing item in queue
             if c_text == '.skip':
-                if self.voice_clients:
-                    await self.voice_clients[0].disconnect()
-                    self.queue.task_done()
+                if client.voice_clients:
+                    await client.voice_clients[0].disconnect()
+                    client.queue.task_done()
             
             elif c_text == '.skip all':
                 # otherwise skip everthing in queue
-                if self.queue.qsize():
-                    for _ in range(self.queue.qsize()):
-                        self.queue.get_nowait()
-                        self.queue.task_done()
-                if self.voice_clients:
-                    await self.voice_clients[0].disconnect()
+                if client.queue.qsize():
+                    for _ in range(client.queue.qsize()):
+                        client.queue.get_nowait()
+                        client.queue.task_done()
+                if client.voice_clients:
+                    await client.voice_clients[0].disconnect()
+    return client
 
 
 ## text commands
@@ -328,7 +325,11 @@ async def myqueue(q):
             pass
 
 if __name__ == '__main__':
-    q = asyncio.Queue()
-    asyncio.Task(myqueue(q))
-    client = MyClient(q)
+    ## loading default emotes
+    config = configparser.ConfigParser()
+    config.read('emotes.ini')
+    config.read('tokens.ini')
+
+    ## creating client and running
+    client = create_client()
     client.run(config['tokens']['JeffBot'])
