@@ -3,7 +3,7 @@ import time
 import discord
 import asyncio
 import itertools
-import youtube_dl
+import yt_dlp
 import configparser
 from functools import partial
 from async_timeout import timeout
@@ -12,8 +12,9 @@ from discord import Option
 from discord.commands import slash_command
 
 # Setting YTDL stuff
-youtube_dl.utils.bug_reports_message = lambda: ''
-ytdl_format_options = {'format': 'bestaudio/best',
+# yt_dlp.utils.bug_reports_message = lambda: ''
+ytdl_format_options = {
+    'format': 'bestaudio/best',
     'outtmpl': '%(extractor)s-%(id)s-%(title)s.%(ext)s',
     'restrictfilenames': True,
     'noplaylist': True,
@@ -23,10 +24,12 @@ ytdl_format_options = {'format': 'bestaudio/best',
     'quiet': True,
     'no_warnings': True,
     'default_search': 'auto',
-    'source_address': '0.0.0.0'} # bind to ipv4 since ipv6 addresses cause issues sometimes}
+    'source_address': '0.0.0.0' # bind to ipv4 since ipv6 addresses cause issues sometimes
+}
+ 
 ffmpeg_options = {'options': '-vn',
                   'before_options': '-reconnect 1 -reconnect_streamed 1 -reconnect_delay_max 5'}
-ytdl = youtube_dl.YoutubeDL(ytdl_format_options)
+ytdl = yt_dlp.YoutubeDL(ytdl_format_options)
 
 ## Setting up bot
 intents = discord.Intents.default()
@@ -348,10 +351,9 @@ class Music(commands.Cog):
             The song to search and retrieve using YTDL. This could be a simple search, an ID or URL.
         """
         vc = ctx.voice_client
-        print(channel)
         await ctx.response.defer()
         if not vc:
-            ret = await self.connect_(list, ctx, True, channel=channel)
+            ret = await self.connect_(ctx, True, channel=channel)
             if ret is None: return
 
         player = self.get_player(ctx)
@@ -363,13 +365,13 @@ class Music(commands.Cog):
 
             try:
                 source = await YTDLSource.create_source(ctx, search, player.np, loop=self.bot.loop, timestamp=criteria[0])
-            except youtube_dl.utils.DownloadError:
+            except yt_dlp.utils.DownloadError:
                 return await ctx.respond('Naughty boy!')
         
         else:
             try:
                 source = await YTDLSource.create_source(ctx, search, player.np, loop=self.bot.loop)
-            except youtube_dl.utils.DownloadError:
+            except yt_dlp.utils.DownloadError:
                 return await ctx.respond('Naughty boy!')
 
         if player.np is None:
@@ -472,7 +474,7 @@ class Music(commands.Cog):
 
         try:
             source = await YTDLSource.create_source(ctx, search, None, loop=self.bot.loop, timestamp=criteria[0])
-        except youtube_dl.utils.DownloadError:
+        except yt_dlp.utils.DownloadError:
             await ctx.respond('Naughty boy!')
             return
 
