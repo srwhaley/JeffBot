@@ -76,11 +76,11 @@ def create_client():
                         (c_text == '.thanks', 'thanks'),
                         (c_text == '.johnson', 'johnson'),
                         (c_text == '.retard' or c_text == '.fire', 'fire'),
-                        (c_text == '.chug', 'chug')]
+                        (c_text == '.chug', 'chug'),
+                        (c_text == '.volde' or c_text == '.avada', 'volde')]
             
             for condition, file in options:
                 if condition and c_author.voice is not None:
-                    # client.queue[c_guild].append((c_author.voice, c_channel, file))
                     client.queue.put_nowait(create_audio_source(c_author, c_channel, file))
                     return
 
@@ -292,6 +292,9 @@ async def create_audio_source(c_author, c_channel, file):
         await message.add_reaction('❓')
     elif file == 'johnson':
         johnfile = 'pics/johnson.gif'
+        message = await c_channel.send('', file=discord.File(johnfile))
+    elif file == 'volde':
+        johnfile = 'pics/volde.png'
         message = await c_channel.send('', file=discord.File(johnfile))
 
     # disconnecting the audio from channel
