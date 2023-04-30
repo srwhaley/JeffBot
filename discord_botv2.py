@@ -77,7 +77,8 @@ def create_client():
                         (c_text == '.johnson', 'johnson'),
                         (c_text == '.retard' or c_text == '.fire', 'fire'),
                         (c_text == '.chug', 'chug'),
-                        (c_text == '.volde' or c_text == '.avada', 'volde')]
+                        (c_text == '.volde' or c_text == '.avada', 'volde'),
+                        (c_text == '.myboy', 'myboy')]
             
             for condition, file in options:
                 if condition and c_author.voice is not None:
