@@ -141,7 +141,8 @@ async def helper(c_channel):
                          '.ourtown(.yeahbeatit/.scrub)\n.allo\n.howdy\n.F\n' +\
                          '.ussr (long)\n.mustard(.mk/.ketchup)\n.mayo\n.hood\n' +\
                          '.thanks\n.johnson\n.retard\n.e(.emote/.ffz)\n.bttv\n' +\
-                         '.cached\n.adde\n.flip (games)\n')
+                         '.cached\n.adde\n.flip (games)\n.chug\n.volde(.avada)\n' +\
+                         '.myboy\n.restart\n')
 
 async def widepeepo(c_message, c_channel):
     peepo = 'pics/widepeepohappy.png'
