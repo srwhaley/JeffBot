@@ -9,6 +9,7 @@ import requests
 import traceback
 import numpy as np
 from discord import FFmpegPCMAudio, PCMVolumeTransformer
+import os
 
 ## client class
 def create_client():
@@ -57,7 +58,8 @@ def create_client():
                         ('widepeepohappy' in c_text, widepeepo, (c_message, c_channel)),
                         (c_text[:5] == '.flip', coin_flip, (c_channel, c_text)),
                         (c_text[:12] == 'join my coop' or c_text[:12] == 'join my boss', bloons, (c_message, c_channel, c_text)),
-                        (c_text[:6] == '.annoy', caller, (c_channel, c_message))]
+                        (c_text[:6] == '.annoy', caller, (c_channel, c_message)),
+                        (c_text[:8] == '.restart', restarter, (c_channel, c_message))]
             
             for condition, func, inputs in options:
                 if condition:
@@ -174,6 +176,8 @@ async def caller(c_channel, c_message):
     await c_channel.send('any <@&282357430531129344> in chat?')
     await c_message.delete()
 
+async def restarter(c_channel, c_message):
+    os.system("sh restartbots.sh")
 
 ## bttv/ffz emote commands
 async def emote(c_message, c_channel, c_text):
