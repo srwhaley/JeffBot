@@ -81,6 +81,7 @@ def create_client():
                         (c_text == '.chug', 'chug'),
                         (c_text == '.volde' or c_text == '.avada', 'volde'),
                         (c_text == '.myboy', 'myboy'),
+                        (c_text == '.huh', 'huh'),
                         (c_text == '.devil', 'devil'),
                         (c_text == '.devil long', 'devillong')]
             
