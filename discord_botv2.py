@@ -83,7 +83,8 @@ def create_client():
                         (c_text == '.myboy', 'myboy'),
                         (c_text == '.huh', 'huh'),
                         (c_text == '.devil', 'devil'),
-                        (c_text == '.devil long', 'devillong')]
+                        (c_text == '.devil long', 'devillong'),
+                        (c_text == '.countdown', 'countdown')]
             
             for condition, file in options:
                 if condition and c_author.voice is not None:
@@ -145,7 +146,7 @@ async def helper(c_channel):
                          '.ussr (long)\n.mustard(.mk/.ketchup)\n.mayo\n.hood\n' +\
                          '.thanks\n.johnson\n.retard\n.e(.emote/.ffz)\n.bttv\n' +\
                          '.cached\n.adde\n.flip (games)\n.chug\n.volde(.avada)\n' +\
-                         '.myboy\n.huh\n.devil (long)\n.restart\n')
+                         '.myboy\n.huh\n.devil (long)\n.countdown\n.restart\n')
 
 async def widepeepo(c_message, c_channel):
     peepo = 'pics/widepeepohappy.png'
