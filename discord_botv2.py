@@ -54,7 +54,7 @@ def create_client():
             # run through options that don't involve mp3 first
             options = [(c_text[:6] == '.emote' or c_text[:3] == '.e ' or c_text[:4] == '.ffz' or c_text[:5] == '.bttv', emote, (c_message, c_channel, c_text)),
                         (c_text[:5] == '.adde', add_emote, (c_channel, c_text)),
-                        (c_text[:7] == '.cached', cached_emotes, (c_channel,)),
+                        (c_text == '.cached', cached_emotes, (c_channel,)),
                         (re.match(r'.clea[nr] [0-9]+', c_text), cleaner, (c_channel, c_text)),
                         (c_text == '.howdy', howdy, (c_channel,)),
                         (c_text == '.help', helper, (c_channel,)),
@@ -62,13 +62,15 @@ def create_client():
                         ('widepeepohappy' in c_text, widepeepo, (c_message, c_channel)),
                         (c_text[:5] == '.flip', coin_flip, (c_channel, c_text)),
                         (c_text[:12] == 'join my coop' or c_text[:12] == 'join my boss', bloons, (c_message, c_channel, c_text)),
-                        (c_text[:6] == '.annoy', caller, (c_channel, c_message)),
-                        (c_text[:8] == '.restart', restarter, (c_channel, c_message))]
+                        (c_text == '.annoy', caller, (c_channel, c_message)),
+                        (c_text == '.restart', restarter, (c_channel, c_message)),
+                        (c_text == '.jeff', jeff, (c_channel,))]
             
             for condition, func, inputs in options:
                 if condition:
                     await func(*inputs)
-                    return
+                    if c_text != '.jeff':
+                        return
             
             # then check for mp3
             options = [(c_text == '.jeff', 'jeff'),
@@ -188,6 +190,14 @@ async def caller(c_channel, c_message):
 async def restarter(c_channel, c_message):
     os.system("sh restartbots.sh")
 
+async def jeff(c_channel):
+    jefffile = 'pics/jeff.png'
+    message = await c_channel.send('my name jeff', file=discord.File(jefffile))
+    await message.add_reaction('🤠')
+    await message.add_reaction('👉')
+    await message.add_reaction('👌')
+    await message.add_reaction('❓')
+
 ## bttv/ffz emote commands
 async def emote(c_message, c_channel, c_text):
     # setting base urls
@@ -298,12 +308,7 @@ async def create_audio_source(c_author, c_channel, file):
     if file == 'ourtown':
         await c_channel.send('(ง ͠° ͟ʖ ͡°)ง ᴛʜɪs ɪs ᴏᴜʀ ᴛᴏwɴ sᴄʀᴜʙ (ง ͠° ͟ʖ ͡°)ง (ง •̀•́)ง *ʏᴇᴀʜ ʙᴇᴀᴛ ɪᴛ!* (ง •̀•́)ง')
     elif file == 'jeff':
-        jefffile = 'pics/jeff.png'
-        message = await c_channel.send('my name jeff', file=discord.File(jefffile))
-        await message.add_reaction('🤠')
-        await message.add_reaction('👉')
-        await message.add_reaction('👌')
-        await message.add_reaction('❓')
+        await jeff(c_channel)
     elif file == 'johnson':
         johnfile = 'pics/johnson.gif'
         message = await c_channel.send('', file=discord.File(johnfile))
