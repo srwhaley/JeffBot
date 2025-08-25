@@ -51,7 +51,7 @@ def create_client():
                 except:
                     await c_message.add_reaction('💩')
             
-            image_options = ['.jeff', 'johnson', 'volde']
+            image_options = ['.jeff', '.johnson', '.volde', '.avada']
 
             # check for mp3
             options = [(c_text == '.jeff', 'jeff'),
@@ -203,7 +203,7 @@ async def imagers(c_channel, image):
     elif image == 'johnson':
         johnfile = 'pics/johnson.gif'
         await c_channel.send('', file=discord.File(johnfile))
-    elif image == 'volde':
+    elif image == 'volde' or image == 'avada':
         johnfile = 'pics/volde.png'
         await c_channel.send('', file=discord.File(johnfile))
 
