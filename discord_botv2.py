@@ -307,14 +307,12 @@ async def create_audio_source(c_author, c_channel, file):
     # doing the message sending if needed
     if file == 'ourtown':
         await c_channel.send('(ง ͠° ͟ʖ ͡°)ง ᴛʜɪs ɪs ᴏᴜʀ ᴛᴏwɴ sᴄʀᴜʙ (ง ͠° ͟ʖ ͡°)ง (ง •̀•́)ง *ʏᴇᴀʜ ʙᴇᴀᴛ ɪᴛ!* (ง •̀•́)ง')
-    elif file == 'jeff':
-        await jeff(c_channel)
     elif file == 'johnson':
         johnfile = 'pics/johnson.gif'
-        message = await c_channel.send('', file=discord.File(johnfile))
+        await c_channel.send('', file=discord.File(johnfile))
     elif file == 'volde':
         johnfile = 'pics/volde.png'
-        message = await c_channel.send('', file=discord.File(johnfile))
+        await c_channel.send('', file=discord.File(johnfile))
 
     # disconnecting the audio from channel
     if vc is not None:
