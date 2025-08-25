@@ -4,11 +4,16 @@ import configparser
 import random
 import discord
 import asyncio
-from discord import message
 import requests
 import traceback
 from discord import FFmpegPCMAudio, PCMVolumeTransformer
 import os
+
+def linspace(a, b, n=100):
+    if n < 2:
+        return b
+    diff = (float(b) - a)/(n - 1)
+    return [diff * i + a  for i in range(n)]
 
 ## client class
 def create_client():
@@ -38,7 +43,7 @@ def create_client():
             client.timedict[c_author.id] = time.time()
         
         if c_author.id != client.user.id:
-            if c_author.id == 151867104646266880 and np.random.random(1)[0] < 0.5:
+            if c_author.id == 151867104646266880 and random.random() < 0.5:
                 try:
                     emoji = random.choice(c_message.guild.emojis)
                     #emoji = [i for i in c_message.guild.emojis if i.name == 'Pepe_Retarded'][0]
@@ -160,9 +165,9 @@ async def coin_flip(c_channel, c_text):
     else:
         games = c_text.split(' ')[1:]
         numg = len(games)
-        bounds = np.linspace(0,1,numg+1)
+        bounds = linspace(0,1,numg+1)
 
-    flip = np.random.random(1)[0]
+    flip = random.random()
     for i in range(len(bounds)-1):
         if flip >= bounds[i] and flip < bounds[i+1]:
             await c_channel.send(games[i])
