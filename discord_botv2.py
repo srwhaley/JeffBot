@@ -7,7 +7,6 @@ import asyncio
 from discord import message
 import requests
 import traceback
-import numpy as np
 from discord import FFmpegPCMAudio, PCMVolumeTransformer
 import os
 
