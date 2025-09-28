@@ -211,7 +211,10 @@ async def imagers(c_channel, image):
 
 async def bofasix(c_channel):
     td = datetime(2025, 10, 10, 0, 0, 0) - datetime.now()
-    messi = f"{td.days} days, {td.seconds//3600} hours, {(td.seconds//60)%60} seconds to bofa sex!!!"
+    days = td.days
+    hours, remainder = divmod(td.seconds, 3600)
+    minutes, seconds = divmod(remainder, 60)
+    messi = f"{days}d:{hours}h:{minutes}m:{seconds}s to bofa sex!!!"
     await c_channel.send(messi)
 
 
