@@ -6,6 +6,7 @@ import discord
 import asyncio
 import requests
 import traceback
+from datetime import datetime
 from discord import FFmpegPCMAudio, PCMVolumeTransformer
 import os
 
@@ -92,7 +93,8 @@ def create_client():
                         (c_text[:12] == 'join my coop' or c_text[:12] == 'join my boss', bloons, (c_message, c_channel, c_text)),
                         (c_text == '.annoy', caller, (c_channel, c_message)),
                         (c_text == '.restart', restarter, (c_channel, c_message)),
-                        (c_text in image_options, imagers, (c_channel, c_text[1:]))]
+                        (c_text in image_options, imagers, (c_channel, c_text[1:])),
+                        (c_text == '.bf6', bofasix, (c_channel,)),]
             
             for condition, func, inputs in options:
                 if condition:
@@ -206,6 +208,12 @@ async def imagers(c_channel, image):
     elif image == 'volde' or image == 'avada':
         johnfile = 'pics/volde.png'
         await c_channel.send('', file=discord.File(johnfile))
+
+async def bofasix(c_channel):
+    td = datetime(2025, 10, 10, 0, 0, 0) - datetime.now()
+    messi = f"{td.days} days, {td.seconds//3600} hours, {(td.seconds//60)%60} seconds to bofa sex!!!"
+    await c_channel.send(messi)
+
 
 ## bttv/ffz emote commands
 async def emote(c_message, c_channel, c_text):
