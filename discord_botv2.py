@@ -210,7 +210,7 @@ async def imagers(c_channel, image):
         await c_channel.send('', file=discord.File(johnfile))
 
 async def bofasix(c_channel):
-    td = datetime(2025, 10, 9, 23, 0, 0) - datetime.now()
+    td = datetime(2025, 10, 10, 10, 0, 0) - datetime.now()
     days = td.days
     hours, remainder = divmod(td.seconds, 3600)
     minutes, seconds = divmod(remainder, 60)
