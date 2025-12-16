@@ -1,0 +1,2 @@
+py-cord>=2.7.0rc2
+yt-dlp
