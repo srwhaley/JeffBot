@@ -92,7 +92,7 @@ def create_client():
                         (c_text[:5] == '.flip', coin_flip, (c_channel, c_text)),
                         (c_text[:12] == 'join my coop' or c_text[:12] == 'join my boss', bloons, (c_message, c_channel, c_text)),
                         (c_text == '.annoy', caller, (c_channel, c_message)),
-                        (c_text == '.restart', restarter, (c_channel, c_message)),
+                        # (c_text == '.restart', restarter, (c_channel, c_message)),
                         (c_text in image_options, imagers, (c_channel, c_text[1:])),
                         (c_text == '.bf6', bofasix, (c_channel,)),]
             
@@ -156,7 +156,7 @@ async def helper(c_channel):
                          '.ussr (long)\n.mustard(.mk/.ketchup)\n.mayo\n.hood\n' +\
                          '.thanks\n.johnson\n.retard\n.e(.emote/.ffz)\n.bttv\n' +\
                          '.cached\n.adde\n.flip (games)\n.chug\n.volde(.avada)\n' +\
-                         '.myboy\n.huh\n.devil (long)\n.countdown\n.restart\n')
+                         '.myboy\n.huh\n.devil (long)\n.countdown\n')
 
 async def widepeepo(c_message, c_channel):
     peepo = 'pics/widepeepohappy.png'
