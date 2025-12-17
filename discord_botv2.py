@@ -10,7 +10,6 @@ from datetime import datetime
 from discord import FFmpegPCMAudio, PCMVolumeTransformer
 import os
 import paramiko
-from subprocess import check_output
 
 def linspace(a, b, n=100):
     if n < 2:
@@ -203,7 +202,11 @@ async def restarter(c_channel, c_message):
     # Connect to the server
     username=config['tokens']['sshuser']
     password=config['tokens']['sshpass']
-    ssh_client.connect('172.18.0.1', username=username, password=password)
+    try:
+        ssh_client.connect('localhost', username=username, password=password)
+    except Exception as e:
+        print('error!', e)
+        return
     print('here')
     # Execute the command
     command = f'echo {password} | sudo -S docker compose -f /volume2/docker/python-scripts/docker-compose.yaml up -d'
