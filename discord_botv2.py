@@ -194,9 +194,6 @@ async def caller(c_channel, c_message):
     await c_message.delete()
 
 async def restarter(c_channel, c_message):
-    try:
-        print(check_output("ip route|awk '/default/ { print $3 }'", shell=True, text=True))
-    except: pass
     # Create an SSH client instance
     ssh_client = paramiko.SSHClient()
     
@@ -207,7 +204,7 @@ async def restarter(c_channel, c_message):
     username=config['tokens']['sshuser']
     password=config['tokens']['sshpass']
     ssh_client.connect('172.18.0.1', username=username, password=password)
-    
+    print('here')
     # Execute the command
     command = f'echo {password} | sudo -S docker compose -f /volume2/docker/python-scripts/docker-compose.yaml up -d'
     stdin, stdout, stderr = ssh_client.exec_command(command)
