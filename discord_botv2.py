@@ -202,7 +202,7 @@ async def restarter(c_channel, c_message):
     # Connect to the server
     username=config['tokens']['sshuser'])
     password=config['tokens']['sshpass'])
-    ssh_client.connect('172.18.0.1', username=username, password=password))
+    ssh_client.connect('host.docker.internal', username=username, password=password))
     
     # Execute the command
     command = f'echo {password} | sudo -S docker compose -f /volume2/docker/python-scripts/docker-compose.yaml up -d'
