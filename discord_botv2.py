@@ -196,17 +196,17 @@ async def restarter(c_channel, c_message):
 
 async def imagers(c_channel, image):
     if image == 'jeff':
-        jefffile = 'pics/jeff.png'
+        jefffile = '/data/extraJeff/pics/jeff.png'
         message = await c_channel.send('my name jeff', file=discord.File(jefffile))
         await message.add_reaction('🤠')
         await message.add_reaction('👉')
         await message.add_reaction('👌')
         await message.add_reaction('❓')
     elif image == 'johnson':
-        johnfile = 'pics/johnson.gif'
+        johnfile = '/data/extraJeff/pics/johnson.gif'
         await c_channel.send('', file=discord.File(johnfile))
     elif image == 'volde' or image == 'avada':
-        johnfile = 'pics/volde.png'
+        johnfile = '/data/extraJeff/pics/volde.png'
         await c_channel.send('', file=discord.File(johnfile))
 
 async def bofasix(c_channel):
@@ -282,7 +282,7 @@ async def add_emote(c_channel, c_text):
 
         # saving the emote
         config['emotes'][name] = link
-        with open('emotes.ini','w') as f:
+        with open('/data/extraJeff/emotes.ini','w') as f:
             config.write(f)
         await c_channel.send(f'Successfully added {name}')
     
@@ -317,7 +317,7 @@ async def create_audio_source(c_author, c_channel, file):
         voice_channel = uservoice.channel
         vc = await voice_channel.connect()
         # creating the audio source
-        audio_source = FFmpegPCMAudio('mp3s/' + file + '.mp3')
+        audio_source = FFmpegPCMAudio('/data/extraJeff/mp3s/' + file + '.mp3')
         audio_source = PCMVolumeTransformer(audio_source)
         audio_source.volume = 50
 
@@ -361,8 +361,8 @@ async def myqueue(q):
 if __name__ == '__main__':
     ## loading default emotes
     config = configparser.ConfigParser()
-    config.read('emotes.ini')
-    config.read('tokens.ini')
+    config.read('/data/extraJeff/emotes.ini')
+    config.read('/data/extraJeff/tokens.ini')
 
     ## creating client and running
     client = create_client()
