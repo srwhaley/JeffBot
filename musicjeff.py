@@ -38,7 +38,7 @@ bot = commands.Bot(debug_guilds=[731642860025282653, 217815052508463105], intent
 
 ## Reading config
 config = configparser.ConfigParser()
-config.read('tokens.ini')
+config.read('/data/extraJeff/tokens.ini')
 
 ## Buttons for the now playing message
 class PlayerButtonView(discord.ui.View):
@@ -474,8 +474,8 @@ class Music(commands.Cog):
 
         try:
             source = await YTDLSource.create_source(ctx, search, None, loop=self.bot.loop, timestamp=criteria[0])
-        except yt_dlp.utils.DownloadError:
-            await ctx.respond('Naughty boy!')
+        except yt_dlp.utils.DownloadError as e:
+            await ctx.respond(f'Naughty boy! {e}')
             return
 
         await player.queue.put((0, (source, None)))
