@@ -192,7 +192,7 @@ async def caller(c_channel, c_message):
     await c_message.delete()
 
 async def restarter(c_channel, c_message):
-    os.system("sh restartbots.sh")
+    os.system("docker compose -f /volume2/docker/python-scripts/docker-compose.yaml up -d")
 
 async def imagers(c_channel, image):
     if image == 'jeff':
