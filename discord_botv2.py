@@ -9,6 +9,7 @@ import traceback
 from datetime import datetime
 from discord import FFmpegPCMAudio, PCMVolumeTransformer
 import os
+import paramiko
 
 def linspace(a, b, n=100):
     if n < 2:
@@ -192,7 +193,23 @@ async def caller(c_channel, c_message):
     await c_message.delete()
 
 async def restarter(c_channel, c_message):
-    os.system("docker compose -f /volume2/docker/python-scripts/docker-compose.yaml up -d")
+    # Create an SSH client instance
+    ssh_client = paramiko.SSHClient()
+    
+    # Automatically add the server's host key (use with caution in production)
+    ssh_client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
+    
+    # Connect to the server
+    username=config['tokens']['sshuser'])
+    password=config['tokens']['sshpass'])
+    ssh_client.connect('172.18.0.1', username=username, password=password))
+    
+    # Execute the command
+    command = f'echo {password} | sudo -S docker compose -f /volume2/docker/python-scripts/docker-compose.yaml up -d'
+    stdin, stdout, stderr = ssh_client.exec_command(command)
+    
+    if ssh_client:
+        ssh_client.close()
 
 async def imagers(c_channel, image):
     if image == 'jeff':
