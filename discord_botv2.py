@@ -200,9 +200,9 @@ async def restarter(c_channel, c_message):
     ssh_client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
     
     # Connect to the server
-    username=config['tokens']['sshuser'])
-    password=config['tokens']['sshpass'])
-    ssh_client.connect('host.docker.internal', username=username, password=password))
+    username=config['tokens']['sshuser']
+    password=config['tokens']['sshpass']
+    ssh_client.connect('host.docker.internal', username=username, password=password)
     
     # Execute the command
     command = f'echo {password} | sudo -S docker compose -f /volume2/docker/python-scripts/docker-compose.yaml up -d'
