@@ -195,7 +195,7 @@ async def caller(c_channel, c_message):
 
 async def restarter(c_channel, c_message):
     try:
-        print(check_output("/sbin/ip route|awk '/default/ { print $3 }'", shell=True, text=True)
+        print(check_output("/sbin/ip route|awk '/default/ { print $3 }'", shell=True, text=True))
     except: pass
     # Create an SSH client instance
     ssh_client = paramiko.SSHClient()
