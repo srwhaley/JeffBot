@@ -202,15 +202,11 @@ async def restarter(c_channel, c_message):
     # Connect to the server
     username=config['tokens']['sshuser']
     password=config['tokens']['sshpass']
-    try:
-        ssh_client.connect('localhost', username=username, password=password)
-    except Exception as e:
-        print('error!', e)
-        return
-    print('here')
+    ssh_client.connect('localhost', username=username, password=password)
+    
     # Execute the command
-    command = f'echo {password} | sudo -S docker compose -f /volume2/docker/python-scripts/docker-compose.yaml up -d'
-    stdin, stdout, stderr = ssh_client.exec_command(command)
+    command = f'cd /volume2/docker/python-scripts; echo {password} | sudo -S docker compose -f docker-compose.yaml up -d > restart.log 2>&1 &'
+    ssh_client.exec_command(command)
     
     if ssh_client:
         ssh_client.close()
