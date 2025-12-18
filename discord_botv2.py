@@ -93,7 +93,7 @@ def create_client():
                         (c_text[:5] == '.flip', coin_flip, (c_channel, c_text)),
                         (c_text[:12] == 'join my coop' or c_text[:12] == 'join my boss', bloons, (c_message, c_channel, c_text)),
                         (c_text == '.annoy', caller, (c_channel, c_message)),
-                        # (c_text == '.restart', restarter, (c_channel, c_message)),
+                        (c_text == '.restart', restarter, (c_channel, c_message)),
                         (c_text in image_options, imagers, (c_channel, c_text[1:])),
                         (c_text == '.bf6', bofasix, (c_channel,)),]
             
@@ -202,7 +202,8 @@ async def restarter(c_channel, c_message):
     # Connect to the server
     username=config['tokens']['sshuser']
     password=config['tokens']['sshpass']
-    ssh_client.connect('localhost', username=username, password=password)
+    ssh_ip = config['tokens']['sship']
+    ssh_client.connect(ssh_ip, username=username, password=password)
     
     # Execute the command
     command = f'cd /volume2/docker/python-scripts; echo {password} | sudo -S docker compose -f docker-compose.yaml up -d > restart.log 2>&1 &'
