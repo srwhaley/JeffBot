@@ -206,6 +206,7 @@ async def restarter(c_channel, c_message):
     ssh_client.connect(ssh_ip, username=username, password=password)
     
     # Execute the command
+    await c_channel.send('beep boop im restarting')
     command = f'cd /volume2/docker/python-scripts; echo {password} | sudo -S docker compose up -d --build --force-recreate > restart.log 2>&1 &'
     ssh_client.exec_command(command)
     
