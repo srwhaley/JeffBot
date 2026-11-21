@@ -217,6 +217,11 @@ class MusicPlayer:
         ctx.bot.loop.create_task(self.player_loop())
 
     async def player_loop(self):
+        def after_playback(error):
+            if error:
+                print(f"PLAYBACK ERROR: {repr(error)}", flush=True)
+        
+            self.bot.loop.call_soon_threadsafe(self.next.set)
         """Our main player loop."""
         await self.bot.wait_until_ready()
 
@@ -244,7 +249,7 @@ class MusicPlayer:
             self.current = source
             self.skipped = False
 
-            self._guild.voice_client.play(source, after=lambda _: self.bot.loop.call_soon_threadsafe(self.next.set))
+            self._guild.voice_client.play(source, after=after_playback)
             duration = dur_calc(source.duration)
 
             embed = discord.Embed(title="Now Playing", description=f"[{source.title}]({source.web_url}) [{duration}] - {source.requester.mention}", color=discord.Color.green())
