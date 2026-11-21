@@ -14,6 +14,7 @@ import paramiko
 discord.opus.load_opus(
     "/lib/x86_64-linux-gnu/libopus.so.0"
 )
+print("OPUS LOADED AT STARTUP:", discord.opus.is_loaded(), flush=True)
 
 def linspace(a, b, n=100):
     if n < 2:
@@ -336,6 +337,7 @@ async def create_audio_source(c_author, c_channel, file):
     
     # only play music if user is in a voice channel
     if uservoice is not None:
+        print("OPUS LOADED AT PLAy:", discord.opus.is_loaded(), flush=True)
         # get user's voice channel and connect
         voice_channel = uservoice.channel
         vc = await voice_channel.connect()
