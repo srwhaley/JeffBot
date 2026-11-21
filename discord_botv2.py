@@ -11,6 +11,10 @@ from discord import FFmpegPCMAudio, PCMVolumeTransformer
 import os
 import paramiko
 
+discord.opus.load_opus(
+    "/lib/x86_64-linux-gnu/libopus.so.0"
+)
+
 def linspace(a, b, n=100):
     if n < 2:
         return b
