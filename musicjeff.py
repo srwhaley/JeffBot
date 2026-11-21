@@ -11,8 +11,9 @@ from discord.ext import commands
 from discord import Option
 from discord.commands import slash_command
 
-if not discord.opus.is_loaded():
-    discord.opus.load_opus("libopus.so.0")
+discord.opus.load_opus(
+    "/lib/x86_64-linux-gnu/libopus.so.0"
+)
 
 # Setting YTDL stuff
 # yt_dlp.utils.bug_reports_message = lambda: ''
