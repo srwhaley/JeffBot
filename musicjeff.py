@@ -251,6 +251,12 @@ class MusicPlayer:
 
             self._guild.voice_client.play(source, after=after_playback)
             duration = dur_calc(source.duration)
+            vc = self._guild.voice_client
+
+            print("DAVE CONNECTION:", vc.is_dave_connection(), flush=True)
+            print("VOICE MODE:", vc.mode, flush=True)
+            print("VOICE LATENCY:", vc.latency, flush=True)
+            print("VOICE SPEAKING:", vc.is_speaking(), flush=True)
 
             embed = discord.Embed(title="Now Playing", description=f"[{source.title}]({source.web_url}) [{duration}] - {source.requester.mention}", color=discord.Color.green())
             embed.set_image(url=source.thumbnails[-1]['url'])
