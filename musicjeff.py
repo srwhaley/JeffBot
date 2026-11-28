@@ -274,18 +274,8 @@ class MusicPlayer:
             
             vc = self._guild.voice_client
 
-            try:
-                await wait_for_voice_ready(vc)
-            except asyncio.TimeoutError as e:
-                print(f"VOICE NOT READY: {e}", flush=True)
-                await self._channel.send(
-                    "Voice connection wasn't ready. Please try playing the track again."
-                )
-                source.cleanup()
-                self.current = None
-                continue
+            await asyncio.sleep(1)
             
-            print("VOICE READY - STARTING PLAYBACK", flush=True)
             vc.play(source, after=after_playback)
             duration = dur_calc(source.duration)
 
