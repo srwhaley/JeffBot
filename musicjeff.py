@@ -44,6 +44,29 @@ bot = commands.Bot(debug_guilds=[731642860025282653, 217815052508463105], intent
 config = configparser.ConfigParser()
 config.read('/data/extraJeff/tokens.ini')
 
+async def wait_for_voice_ready(vc, timeout=15):
+    """Wait until the Discord voice connection is ready to transmit audio."""
+
+    loop = asyncio.get_running_loop()
+    deadline = loop.time() + timeout
+
+    while loop.time() < deadline:
+        if (
+            vc is not None
+            and vc.is_connected()
+            and vc.endpoint
+            and vc.ssrc
+            and vc.mode
+            and vc.is_dave_connection()
+        ):
+            return True
+
+        await asyncio.sleep(0.1)
+
+    raise asyncio.TimeoutError(
+        "Discord voice connection did not become ready within 15 seconds"
+    )
+
 ## Buttons for the now playing message
 class PlayerButtonView(discord.ui.View):
     def __init__(self, player, ctx):
@@ -250,15 +273,20 @@ class MusicPlayer:
             self.skipped = False
             
             vc = self._guild.voice_client
-            # Give the voice connection time to finish processing pending events.
-            await asyncio.sleep(1)
+
+            try:
+                await wait_for_voice_ready(vc)
+            except asyncio.TimeoutError as e:
+                print(f"VOICE NOT READY: {e}", flush=True)
+                await self._channel.send(
+                    "Voice connection wasn't ready. Please try playing the track again."
+                )
+                source.cleanup()
+                self.current = None
+                continue
             
-            print("DAVE CONNECTION BEFORE PLAY:", vc.is_dave_connection(), flush=True)
-            print("VOICE MODE:", vc.mode, flush=True)
-            print("VOICE LATENCY:", vc.latency, flush=True)
-            
+            print("VOICE READY - STARTING PLAYBACK", flush=True)
             vc.play(source, after=after_playback)
-            
             duration = dur_calc(source.duration)
 
             embed = discord.Embed(title="Now Playing", description=f"[{source.title}]({source.web_url}) [{duration}] - {source.requester.mention}", color=discord.Color.green())
