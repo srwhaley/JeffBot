@@ -22,18 +22,15 @@ async def wait_for_voice_ready(vc, timeout=15):
     deadline = loop.time() + timeout
 
     while loop.time() < deadline:
-        if vc and vc.is_connected():
-            connection = vc._connection
-            dave = getattr(connection, "dave_session", None)
-
-            if (
-                vc.endpoint
-                and vc.ssrc
-                and vc.mode
-                and dave is not None
-                and dave.ready
-            ):
-                return True
+        if (
+            vc is not None
+            and vc.is_connected()
+            and vc.endpoint
+            and vc.ssrc
+            and vc.mode
+            and vc.is_dave_connection()
+        ):
+            return True
 
         await asyncio.sleep(0.1)
 
@@ -357,28 +354,36 @@ async def cached_emotes(c_channel):
 async def create_audio_source(c_author, c_channel, file):
     uservoice = c_author.voice
     vc = None
-    
-    # only play music if user is in a voice channel
-    if uservoice is not None:
-        print("OPUS LOADED AT PLAy:", discord.opus.is_loaded(), flush=True)
-        # get user's voice channel and connect
-        voice_channel = uservoice.channel
-        vc = ctx.guild.voice_client
 
-        source = discord.PCMVolumeTransformer(
-            discord.FFmpegPCMAudio('/data/extraJeff/mp3s/' + file + '.mp3'),
-            volume=0.5
-        )
-        
-        vc = ctx.guild.voice_client
-        
-        try:
-            await wait_for_voice_ready(vc)
-        except asyncio.TimeoutError:
-            source.cleanup()
-            await ctx.send("Voice connection wasn't ready. Try again.")
-            return
-        
+    # Only play music if user is in a voice channel
+    if uservoice is None:
+        return
+
+    print("OPUS LOADED AT PLAY:", discord.opus.is_loaded(), flush=True)
+
+    # Get the user's voice channel and connect
+    voice_channel = uservoice.channel
+    vc = voice_channel.guild.voice_client
+
+    if vc is None or not vc.is_connected():
+        vc = await voice_channel.connect()
+    elif vc.channel != voice_channel:
+        await vc.move_to(voice_channel)
+
+    # Preserve the original volume transformer
+    source = discord.PCMVolumeTransformer(
+        discord.FFmpegPCMAudio(
+            '/data/extraJeff/mp3s/' + file + '.mp3'
+        ),
+        volume=0.5
+    )
+
+    try:
+        # Wait until Discord's voice connection is ready
+        await wait_for_voice_ready(vc)
+
+        print("VOICE READY - STARTING MP3", flush=True)
+
         vc.play(
             source,
             after=lambda error: print(
@@ -386,18 +391,29 @@ async def create_audio_source(c_author, c_channel, file):
             ) if error else None
         )
 
-    # doing the message sending if needed
-    if file == 'ourtown':
-        await c_channel.send('(ง ͠° ͟ʖ ͡°)ง ᴛʜɪs ɪs ᴏᴜʀ ᴛᴏwɴ sᴄʀᴜʙ (ง ͠° ͟ʖ ͡°)ง (ง •̀•́)ง *ʏᴇᴀʜ ʙᴇᴀᴛ ɪᴛ!* (ง •̀•́)ง')
+        if file == 'ourtown':
+            await c_channel.send(
+                '(ง ͠° ͟ʖ ͡°)ง ᴛʜɪs ɪs ᴏᴜʀ ᴛᴏwɴ sᴄʀᴜʙ '
+                '(ง ͠° ͟ʖ ͡°)ง (ง •̀•́)ง *ʏᴇᴀʜ ʙᴇᴀᴛ ɪᴛ!* (ง •̀•́)ง'
+            )
 
-    # disconnecting the audio from channel
-    if vc is not None:
-        while True:
-            if vc.is_playing():
-                await asyncio.sleep(0.5)
-            else:
-                await vc.disconnect()
-                break
+        # Wait for playback to finish, or for a skip/disconnect
+        while vc.is_playing() or vc.is_paused():
+            await asyncio.sleep(0.5)
+
+    except asyncio.TimeoutError:
+        print("VOICE CONNECTION NOT READY", flush=True)
+        await c_channel.send(
+            "Voice connection wasn't ready. Please try again."
+        )
+
+    finally:
+        source.cleanup()
+
+        # Disconnect after playback, including when skipped
+        if vc.is_connected():
+            await vc.disconnect()
+
 
 
 ## the queue
