@@ -248,15 +248,18 @@ class MusicPlayer:
             source.volume = self.volume
             self.current = source
             self.skipped = False
-
-            self._guild.voice_client.play(source, after=after_playback)
-            duration = dur_calc(source.duration)
+            
             vc = self._guild.voice_client
-
-            print("DAVE CONNECTION:", vc.is_dave_connection(), flush=True)
+            # Give the voice connection time to finish processing pending events.
+            await asyncio.sleep(1)
+            
+            print("DAVE CONNECTION BEFORE PLAY:", vc.is_dave_connection(), flush=True)
             print("VOICE MODE:", vc.mode, flush=True)
             print("VOICE LATENCY:", vc.latency, flush=True)
-            print("VOICE SPEAKING:", vc.is_speaking(), flush=True)
+            
+            vc.play(source, after=after_playback)
+            
+            duration = dur_calc(source.duration)
 
             embed = discord.Embed(title="Now Playing", description=f"[{source.title}]({source.web_url}) [{duration}] - {source.requester.mention}", color=discord.Color.green())
             embed.set_image(url=source.thumbnails[-1]['url'])
