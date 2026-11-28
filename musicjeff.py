@@ -532,7 +532,15 @@ class Music(commands.Cog):
         try:
             s = player.queue._queue[pos-1]
             del player.queue._queue[pos-1]
-            embed = discord.Embed(title="", description=f"Removed [{s['title']}]({s['webpage_url']}) [{s['requester'].mention}]", color=discord.Color.green())
+            
+            source, _ctx = s[1]
+            
+            embed = discord.Embed(
+                title="",
+                description=f"Removed [{source.title}]({source.web_url}) "
+                            f"[{source.requester.mention}]",
+                color=discord.Color.green()
+            )
             await ctx.respond(embed=embed)
         except:
             return await ctx.respond(f'Could not find a track for "{pos}"', ephemeral=True)
@@ -570,9 +578,26 @@ class Music(commands.Cog):
             duration = "%02dm %02ds" % (minutes, seconds)
 
         # Grabs the songs in the queue...
-        upcoming = list(itertools.islice(player.queue._queue, 0, int(len(player.queue._queue))))
-        fmt = '\n'.join(f"`{(upcoming.index(_)) + 1}.` [{_['title']}]({_['webpage_url']}) | `{duration}` Requested by: {_['requester'].mention}\n" for _ in upcoming)
-        fmt = f"\n__Now Playing__:\n[{vc.source.title}]({vc.source.web_url}) | `{duration}` Requested by: {vc.source.requester.mention}\n\n__Up Next:__\n" + fmt + f"\n**{len(upcoming)} songs in queue**"
+        upcoming = list(player.queue._queue)
+        
+        fmt = '\n'.join(
+            f"`{i}.` [{source.title}]({source.web_url}) "
+            f"| `{dur_calc(source.duration)}` "
+            f"Requested by: {source.requester.mention}"
+            for i, (_, (source, _ctx)) in enumerate(upcoming, start=1)
+        )
+        
+        current = vc.source
+        
+        fmt = (
+            f"\n__Now Playing__:\n"
+            f"[{current.title}]({current.web_url}) "
+            f"| `{dur_calc(current.duration)}` "
+            f"Requested by: {current.requester.mention}\n\n"
+            f"__Up Next:__\n{fmt}\n"
+            f"**{len(upcoming)} songs in queue**"
+        )
+        
         embed = discord.Embed(title=f'Queue for {ctx.guild.name}', description=fmt, color=discord.Color.green())
         embed.set_footer(text=f"{ctx.author.display_name}", icon_url=ctx.author.display_avatar.url)
 
