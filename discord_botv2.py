@@ -16,6 +16,29 @@ discord.opus.load_opus(
 )
 print("OPUS LOADED AT STARTUP:", discord.opus.is_loaded(), flush=True)
 
+
+async def wait_for_voice_ready(vc, timeout=15):
+    loop = asyncio.get_running_loop()
+    deadline = loop.time() + timeout
+
+    while loop.time() < deadline:
+        if vc and vc.is_connected():
+            connection = vc._connection
+            dave = getattr(connection, "dave_session", None)
+
+            if (
+                vc.endpoint
+                and vc.ssrc
+                and vc.mode
+                and dave is not None
+                and dave.ready
+            ):
+                return True
+
+        await asyncio.sleep(0.1)
+
+    raise asyncio.TimeoutError("Voice connection not ready")
+
 def linspace(a, b, n=100):
     if n < 2:
         return b
@@ -340,14 +363,28 @@ async def create_audio_source(c_author, c_channel, file):
         print("OPUS LOADED AT PLAy:", discord.opus.is_loaded(), flush=True)
         # get user's voice channel and connect
         voice_channel = uservoice.channel
-        vc = await voice_channel.connect()
-        # creating the audio source
-        audio_source = FFmpegPCMAudio('/data/extraJeff/mp3s/' + file + '.mp3')
-        audio_source = PCMVolumeTransformer(audio_source)
-        audio_source.volume = 50
+        vc = ctx.guild.voice_client
 
-        # play audio
-        vc.play(audio_source)
+        source = discord.PCMVolumeTransformer(
+            discord.FFmpegPCMAudio('/data/extraJeff/mp3s/' + file + '.mp3'),
+            volume=0.5
+        )
+        
+        vc = ctx.guild.voice_client
+        
+        try:
+            await wait_for_voice_ready(vc)
+        except asyncio.TimeoutError:
+            source.cleanup()
+            await ctx.send("Voice connection wasn't ready. Try again.")
+            return
+        
+        vc.play(
+            source,
+            after=lambda error: print(
+                f"PLAYBACK ERROR: {error!r}", flush=True
+            ) if error else None
+        )
 
     # doing the message sending if needed
     if file == 'ourtown':
